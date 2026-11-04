@@ -8,6 +8,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AuthController; 
 use App\Http\Controllers\AdminUserController; 
 use App\Models\Product; 
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 // Գլխավոր էջ՝ հասանելի բոլորին // 
 Route::get('/', [HomeController::class, 'index']) ->name('home'); 
@@ -82,4 +84,34 @@ Route::get('/language/{locale}', function ($locale) {
         session()->put('locale', $locale); 
         return redirect()->back(); 
         })->name('language.switch');
+
+
+// Email Verification
+
+Route::middleware('auth')->group(function () {
+
+    Route::get('/email/verify', function () {
+        return view('auth.verify-email');
+    })->name('verification.notice');
+
+    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        $request->fulfill();
+
+        return redirect('/')->with(
+            'success',
+            'Ձեր էլեկտրոնային հասցեն հաջողությամբ հաստատվեց։'
+        );
+    })->middleware(['signed', 'throttle:6,1'])
+      ->name('verification.verify');
+
+    Route::post('/email/verification-notification', function (Request $request) {
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with(
+            'success',
+            'Հաստատման նամակը կրկին ուղարկվեց։'
+        );
+    })->middleware('throttle:6,1')
+      ->name('verification.send');
+});
 

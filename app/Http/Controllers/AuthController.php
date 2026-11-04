@@ -33,10 +33,15 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+        $user->sendEmailVerificationNotification();
 
-        Mail::to($user->email)->send(
-        new WelcomeMail($user->name)
+        try {
+            Mail::to($user->email)->send(
+            new WelcomeMail($user->name)
         );
+        } catch (\Exception $e) {
+                       \Log::error('Welcome email failed: ' . $e->getMessage());
+    }
 
         return redirect('/')->with(
             'success',
@@ -84,8 +89,8 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/')->with(
-            'success',
-            'Դուք դուրս եկաք համակարգից։'
-        );
+    'success',
+    'Դուք դուրս եկաք համակարգից։'
+);
     }
 }
