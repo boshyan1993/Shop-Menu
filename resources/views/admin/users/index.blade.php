@@ -17,7 +17,7 @@
         }
 
         .users-page {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 50px auto;
             padding: 30px;
         }
@@ -44,6 +44,7 @@
             padding: 25px;
             border-radius: 0 0 14px 14px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
         }
 
         table {
@@ -85,6 +86,48 @@
             font-weight: bold;
         }
 
+        .role-manager {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #dcfce7;
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .role-select {
+            padding: 9px;
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+            margin-right: 5px;
+        }
+
+        .save-button {
+            padding: 9px 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background: #1d4ed8;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            color: #dc2626;
+            margin-bottom: 15px;
+        }
+
         .back-button {
             display: inline-block;
             margin-top: 25px;
@@ -109,18 +152,29 @@
 
         <div class="users-header">
 
-            <h1>
-                {{ __('users.title') }}
-            </h1>
+            <h1>{{ __('users.title') }}</h1>
 
-            <p>
-                {{ __('users.description') }}
-            </p>
+            <p>{{ __('users.description') }}</p>
 
         </div>
 
-
         <div class="users-content">
+
+            {{-- Հաջողության հաղորդագրություն --}}
+            @if (session('success'))
+                <div class="success-message">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            {{-- Սխալների ցուցադրում --}}
+            @if ($errors->any())
+                <div class="error-message">
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
 
             <table>
 
@@ -131,6 +185,7 @@
                         <th>{{ __('users.email') }}</th>
                         <th>{{ __('users.role') }}</th>
                         <th>{{ __('users.registered_at') }}</th>
+                        <th>Գործողություններ</th>
                     </tr>
                 </thead>
 
@@ -138,35 +193,35 @@
 
                     @forelse ($users as $user)
 
+                        @php
+                            $currentRole = $user->roles->first();
+                        @endphp
+
                         <tr>
 
+                            <td>{{ $user->id }}</td>
+
                             <td>
-                                {{ $user->id }}
+                                <strong>{{ $user->name }}</strong>
                             </td>
 
-                            <td>
-                                <strong>
-                                    {{ $user->name }}
-                                </strong>
-                            </td>
+                            <td>{{ $user->email }}</td>
 
-                            <td>
-                                {{ $user->email }}
-                            </td>
-
+                            {{-- Ընթացիկ դեր --}}
                             <td>
 
-                                @if ($user->role === 'admin')
+                                @if ($currentRole)
 
-                                    <span class="role-admin">
-                                        {{ __('users.admin') }}
+                                    <span class="{{ 
+                                        $currentRole->slug === 'admin' ? 'role-admin' :
+                                        ($currentRole->slug === 'manager' ? 'role-manager' : 'role-user')
+                                    }}">
+                                        {{ $currentRole->name }}
                                     </span>
 
                                 @else
 
-                                    <span class="role-user">
-                                        {{ __('users.user') }}
-                                    </span>
+                                    <span>Դեր նշանակված չէ</span>
 
                                 @endif
 
@@ -176,16 +231,48 @@
                                 {{ $user->created_at->format('d.m.Y H:i') }}
                             </td>
 
+                            {{-- Դերի փոփոխություն --}}
+                            <td>
+
+                                <form
+                                    action="{{ route('admin.users.updateRole', $user->id) }}"
+                                    method="POST"
+                                >
+
+                                    @csrf
+                                    @method('PUT')
+
+                                    <select name="role_id" class="role-select" required>
+
+                                        @foreach ($roles as $role)
+
+                                            <option
+                                                value="{{ $role->id }}"
+                                                {{ $currentRole && $currentRole->id == $role->id ? 'selected' : '' }}
+                                            >
+                                                {{ $role->name }}
+                                            </option>
+
+                                        @endforeach
+
+                                    </select>
+
+                                    <button type="submit" class="save-button">
+                                        Պահպանել
+                                    </button>
+
+                                </form>
+
+                            </td>
+
                         </tr>
 
                     @empty
 
                         <tr>
-
-                            <td colspan="5">
+                            <td colspan="6">
                                 {{ __('users.empty') }}
                             </td>
-
                         </tr>
 
                     @endforelse
@@ -194,11 +281,7 @@
 
             </table>
 
-
-            <a
-                href="{{ route('admin.index') }}"
-                class="back-button"
-            >
+            <a href="{{ route('admin.index') }}" class="back-button">
                 {{ __('users.back') }}
             </a>
 
@@ -207,5 +290,4 @@
     </div>
 
 </body>
-
 </html>

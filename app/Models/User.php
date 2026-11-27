@@ -34,6 +34,13 @@ class User extends Authenticatable implements MustVerifyEmail
         ->exists();
 }
 
+public function getRoleNameAttribute(): string
+{
+    return $this->roles()
+        ->pluck('name')
+        ->implode(', ') ?: 'User';
+}
+
     /**
      * Check if user has a specific permission.
      */

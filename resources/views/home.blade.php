@@ -336,12 +336,20 @@
 
             @auth
 
-                <span class="auth-user">
-                    👤 {{ auth()->user()->name }}
-                </span>
+                <div class="auth-user" style="display: flex; flex-direction: column; gap: 4px;">
+
+    <span>
+        👤 {{ auth()->user()->name }}
+    </span>
+
+    <span style="font-size: 12px; color: #93c5fd;">
+        Դեր՝ {{ auth()->user()->roles()->pluck('roles.name')->implode(', ') ?: 'No role' }}
+    </span>
+
+</div>
 
 
-                @if(auth()->user()->role === 'admin')
+                @if(auth()->user()->hasRole('admin'))
 
                     <a
                         class="admin-link"

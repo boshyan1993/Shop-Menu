@@ -3,21 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Mail\WelcomeMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
- 
+    // Գրանցման էջ
     public function showRegister()
     {
         return view('auth.register');
     }
 
-  
+    // Գրանցում
     public function register(Request $request)
     {
         $request->validate([
@@ -26,37 +27,50 @@ class AuthController extends Controller
             'password' => 'required|min:6|confirmed',
         ]);
 
+        // Ստուգում ենք User դերի առկայությունը
+        Role::where('slug', 'user')->firstOrFail();
+
+        // Ստեղծում ենք օգտատիրոջը
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
         ]);
 
+        // Ավտոմատ նշանակում ենք User դեր
+        $user->assignRole('user');
+
+        // Մուտք ենք գործում համակարգ
         Auth::login($user);
+
+        // Ուղարկում ենք email-ի հաստատման նամակ
         $user->sendEmailVerificationNotification();
 
+        // Ուղարկում ենք ողջույնի նամակ
         try {
             Mail::to($user->email)->send(
-            new WelcomeMail($user->name)
-        );
+                new WelcomeMail($user->name)
+            );
         } catch (\Exception $e) {
-                       \Log::error('Welcome email failed: ' . $e->getMessage());
-    }
+            Log::error(
+                'Welcome email failed: ' . $e->getMessage()
+            );
+        }
 
         return redirect('/')->with(
             'success',
-            'Գրանցումը հաջողությամբ կատարվեց։'
+            'Գրանցումը հաջողությամբ կատարվեց։ Ձեր դերը՝ '
+            . $user->role_name
         );
     }
 
-
-
+    // Մուտքի էջ
     public function showLogin()
     {
         return view('auth.login');
     }
 
-  
+    // Մուտք
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -79,7 +93,7 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-
+    // Ելք
     public function logout(Request $request)
     {
         Auth::logout();
@@ -89,8 +103,8 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/')->with(
-    'success',
-    'Դուք դուրս եկաք համակարգից։'
-);
+            'success',
+            'Դուք դուրս եկաք համակարգից։'
+        );
     }
 }
